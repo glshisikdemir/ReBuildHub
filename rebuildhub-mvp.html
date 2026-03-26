@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d1117">
+<title>ReBuildHub</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --retain: #3fb950;
+    --transfer: #58a6ff;
+    --salvage: #d2a03a;
+    --discard: #f85149;
+    --accent: #c9e84c;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  html, body {
+    height: 100%;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── APP SHELL ── */
+  #app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ── STATUS BAR ── */
+  #statusBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px 8px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .brand {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .brand span { color: var(--accent); }
+
+  .status-pills { display: flex; gap: 8px; align-items: center; }
+
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .pill.online { border-color: rgba(63,185,80,0.4); color: var(--retain); }
+  .pill.offline { border-color: rgba(248,81,73,0.4); color: var(--discard); }
+
+  .pill-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .screen.active { display: flex; }
+
+  /* ── ONBOARDING ── */
+  #screenOnboard {
+    justify-content: center;
+    padding: 32px 24px;
+    gap: 32px;
+  }
+
+  .onboard-hero {
+    text-align: center;
+  }
+
+  .onboard-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .onboard-hero h2 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+
+  .onboard-hero p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+
+  label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  input[type="text"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  .gps-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+  }
+
+  .gps-toggle-label { display: flex; flex-direction: column; gap: 2px; }
+  .gps-toggle-label strong { font-size: 14px; }
+  .gps-toggle-label small { font-size: 11px; color: var(--muted); }
+
+  .toggle-switch {
+    width: 44px; height: 26px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    position: relative;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.on {
+    background: rgba(201,232,76,0.2);
+    border-color: var(--accent);
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--muted);
+    top: 3px; left: 3px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle-switch.on::after {
+    transform: translateX(18px);
+    background: var(--accent);
+  }
+
+  /* ── BUTTONS ── */
+  .btn-primary {
+    background: var(--accent);
+    color: #0d1117;
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 0.1s, opacity 0.1s;
+    letter-spacing: -0.2px;
+  }
+  .btn-primary:active { transform: scale(0.97); opacity: 0.9; }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s;
+  }
+  .btn-secondary:active { background: var(--surface2); }
+
+  /* ── HOME SCREEN ── */
+  #screenHome { padding: 16px; gap: 16px; }
+
+  .site-banner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .site-info { display: flex; flex-direction: column; gap: 2px; }
+  .site-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .site-user { font-size: 12px; color: var(--muted); }
+
+  .icon-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.15s;
+  }
+  .icon-btn:active { background: var(--surface2); }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-title-sm {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+  }
+
+  /* ── DECISION GRID ── */
+  .decision-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .decision-btn {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.15s, background 0.15s;
+    position: relative;
+    overflow: hidden;
+    min-height: 120px;
+    justify-content: center;
+  }
+
+  .decision-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .decision-btn:active { transform: scale(0.96); }
+
+  .decision-btn.retain { border-color: rgba(63,185,80,0.3); }
+  .decision-btn.retain::before { background: rgba(63,185,80,0.06); }
+  .decision-btn.retain:active { border-color: var(--retain); }
+  .decision-btn.retain:active::before { opacity: 1; }
+
+  .decision-btn.transfer { border-color: rgba(88,166,255,0.3); }
+  .decision-btn.transfer::before { background: rgba(88,166,255,0.06); }
+  .decision-btn.transfer:active { border-color: var(--transfer); }
+  .decision-btn.transfer:active::before { opacity: 1; }
+
+  .decision-btn.salvage { border-color: rgba(210,160,58,0.3); }
+  .decision-btn.salvage::before { background: rgba(210,160,58,0.06); }
+  .decision-btn.salvage:active { border-color: var(--salvage); }
+  .decision-btn.salvage:active::before { opacity: 1; }
+
+  .decision-btn.discard { border-color: rgba(248,81,73,0.3); }
+  .decision-btn.discard::before { background: rgba(248,81,73,0.06); }
+  .decision-btn.discard:active { border-color: var(--discard); }
+  .decision-btn.discard:active::before { opacity: 1; }
+
+  .decision-icon { font-size: 36px; }
+
+  .decision-label {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
+  .retain .decision-label { color: var(--retain); }
+  .transfer .decision-label { color: var(--transfer); }
+  .salvage .decision-label { color: var(--salvage); }
+  .discard .decision-label { color: var(--discard); }
+
+  .decision-sub { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.4; }
+
+  /* ── RECENT LOG ── */
+  .log-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .log-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .log-item:active { background: var(--surface2); }
+
+  .log-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .log-main { flex: 1; min-width: 0; }
+
+  .log-decision {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .log-meta {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .log-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .empty-state .empty-icon { font-size: 40px; display: block; margin-bottom: 8px; }
+
+  .sync-badge {
+    background: rgba(248,81,73,0.15);
+    border: 1px solid rgba(248,81,73,0.3);
+    color: var(--discard);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  /* ── DETAIL SCREEN (Category + Condition) ── */
+  #screenDetail {
+    padding: 16px;
+    gap: 20px;
+  }
+
+  .back-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .back-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .back-btn:active { background: var(--surface2); }
+
+  .decision-context {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+
+  .context-icon { font-size: 28px; }
+
+  .context-info strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: capitalize;
+  }
+  .context-info span { font-size: 12px; color: var(--muted); }
+
+  .choice-group { display: flex; flex-direction: column; gap: 10px; }
+
+  .choice-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  .choice-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .choice-grid.six { grid-template-columns: repeat(3, 1fr); }
+
+  .choice-btn {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    min-height: 80px;
+    justify-content: center;
+  }
+
+  .choice-btn:active { background: var(--surface2); }
+  .choice-btn.selected {
+    border-color: var(--accent);
+    background: rgba(201,232,76,0.08);
+  }
+
+  .choice-icon { font-size: 24px; }
+  .choice-text { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.3; }
+
+  /* ── RECORDS SCREEN ── */
+  #screenRecords { padding: 16px; gap: 12px; }
+
+  .records-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 8px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+
+  .all-records { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; }
+
+  .record-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .record-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .record-decision {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: capitalize;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .record-ts {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .record-details {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .correction-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(248,81,73,0.1);
+    border: 1px solid rgba(248,81,73,0.3);
+    color: var(--discard);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .offline-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(248,81,73,0.1);
+    border: 1px solid rgba(248,81,73,0.3);
+    color: var(--discard);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .export-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 0 16px;
+    flex-shrink: 0;
+  }
+
+  /* ── CORRECTION MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: flex-end;
+    padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 16px 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .modal-record {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--text);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 14px;
+    width: 100%;
+    min-height: 80px;
+    outline: none;
+    resize: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  /* ── SUCCESS TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 200;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── NAV ── */
+  #nav {
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .nav-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 10px 0 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.15s;
+    color: var(--muted);
+  }
+
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn:active { background: var(--surface2); }
+
+  .nav-icon { font-size: 20px; }
+  .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── DECISION COLORS ── */
+  .c-retain { color: var(--retain); }
+  .c-transfer { color: var(--transfer); }
+  .c-salvage { color: var(--salvage); }
+  .c-discard { color: var(--discard); }
+
+  .bg-retain { background: var(--retain); }
+  .bg-transfer { background: var(--transfer); }
+  .bg-salvage { background: var(--salvage); }
+  .bg-discard { background: var(--discard); }
+
+  /* Desktop centering */
+  @media (min-width: 481px) {
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #060a0f;
+    }
+    #app {
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      height: min(100vh, 860px);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- STATUS BAR -->
+  <div id="statusBar">
+    <div class="brand">Re<span>Build</span>Hub</div>
+    <div class="status-pills">
+      <div id="connStatus" class="pill offline">
+        <div class="pill-dot"></div>
+        <span id="connLabel">Offline</span>
+      </div>
+      <div id="syncPill" class="pill" style="display:none">
+        <span id="syncCount">0</span> pending
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN: ONBOARDING ══ -->
+  <div id="screenOnboard" class="screen active">
+    <div class="onboard-hero">
+      <span class="onboard-icon">🏗️</span>
+      <h2>Welcome to ReBuildHub</h2>
+      <p>Log material decisions on site in under 30 seconds. Works offline. No training required.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Site Code *</label>
+      <input type="text" id="siteCodeInput" placeholder="e.g. SITE-2024-001" maxlength="30" autocomplete="off" autocapitalize="characters">
+    </div>
+
+    <div class="form-group">
+      <label>Your Name (optional)</label>
+      <input type="text" id="userNameInput" placeholder="e.g. Alex or leave blank" maxlength="40">
+    </div>
+
+    <div class="form-group">
+      <label>Location Tracking</label>
+      <div class="gps-toggle" id="gpsToggle">
+        <div class="gps-toggle-label">
+          <strong>📍 Record GPS coordinates</strong>
+          <small>Optional — requires your explicit consent per GDPR Art. 25</small>
+        </div>
+        <div class="toggle-switch" id="toggleSwitch"></div>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="startBtn">Start Logging →</button>
+  </div>
+
+  <!-- ══ SCREEN: HOME ══ -->
+  <div id="screenHome" class="screen">
+
+    <div class="site-banner">
+      <div class="site-info">
+        <div class="site-code" id="bannerSiteCode">—</div>
+        <div class="site-user" id="bannerUser">—</div>
+      </div>
+      <button class="icon-btn" id="logoutBtn" title="Change site">↩</button>
+    </div>
+
+    <div>
+      <div class="section-header" style="margin-bottom:10px">
+        <div class="section-title-sm">Log a Decision</div>
+        <div style="font-family:'DM Mono',monospace; font-size:10px; color:var(--muted)">tap to record</div>
+      </div>
+      <div class="decision-grid">
+        <button class="decision-btn retain" data-decision="retain">
+          <div class="decision-icon">📌</div>
+          <div class="decision-label">Retain</div>
+          <div class="decision-sub">Keep in place</div>
+        </button>
+        <button class="decision-btn transfer" data-decision="transfer">
+          <div class="decision-icon">🔄</div>
+          <div class="decision-label">Transfer</div>
+          <div class="decision-sub">Move to another site</div>
+        </button>
+        <button class="decision-btn salvage" data-decision="salvage">
+          <div class="decision-icon">♻️</div>
+          <div class="decision-label">Salvage</div>
+          <div class="decision-sub">Recover / resell</div>
+        </button>
+        <button class="decision-btn discard" data-decision="discard">
+          <div class="decision-icon">🗑️</div>
+          <div class="decision-label">Discard</div>
+          <div class="decision-sub">Dispose as waste</div>
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-header" style="margin-bottom:10px">
+        <div class="section-title-sm">Recent</div>
+        <button class="icon-btn" id="viewAllBtn" style="font-size:12px; width:auto; padding:0 10px; font-family:'Bricolage Grotesque',sans-serif; font-weight:600">All →</button>
+      </div>
+      <div id="recentLog" class="log-list"></div>
+    </div>
+
+  </div>
+
+  <!-- ══ SCREEN: DETAIL (category + condition) ══ -->
+  <div id="screenDetail" class="screen">
+
+    <div class="back-header">
+      <button class="back-btn" id="backBtn">←</button>
+      <div id="detailContext" class="decision-context" style="flex:1">
+        <div class="context-icon" id="ctxIcon">📌</div>
+        <div class="context-info">
+          <strong id="ctxDecision">Retain</strong>
+          <span>Select category and condition below</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="choice-group">
+      <div class="choice-label">Material Category</div>
+      <div class="choice-grid six" id="categoryGrid">
+        <button class="choice-btn" data-value="metal">
+          <span class="choice-icon">🔩</span>
+          <span class="choice-text">Metal</span>
+        </button>
+        <button class="choice-btn" data-value="wood">
+          <span class="choice-icon">🪵</span>
+          <span class="choice-text">Wood</span>
+        </button>
+        <button class="choice-btn" data-value="concrete">
+          <span class="choice-icon">🧱</span>
+          <span class="choice-text">Concrete</span>
+        </button>
+        <button class="choice-btn" data-value="brick">
+          <span class="choice-icon">🏚️</span>
+          <span class="choice-text">Brick</span>
+        </button>
+        <button class="choice-btn" data-value="glass">
+          <span class="choice-icon">🪟</span>
+          <span class="choice-text">Glass</span>
+        </button>
+        <button class="choice-btn" data-value="other">
+          <span class="choice-icon">📦</span>
+          <span class="choice-text">Other</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="choice-group">
+      <div class="choice-label">Condition</div>
+      <div class="choice-grid" id="conditionGrid">
+        <button class="choice-btn" data-value="good">
+          <span class="choice-icon">✅</span>
+          <span class="choice-text">Good</span>
+        </button>
+        <button class="choice-btn" data-value="fair">
+          <span class="choice-icon">⚠️</span>
+          <span class="choice-text">Fair</span>
+        </button>
+        <button class="choice-btn" data-value="poor">
+          <span class="choice-icon">❌</span>
+          <span class="choice-text">Poor</span>
+        </button>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="saveDecisionBtn" disabled style="margin-top:auto">Save Decision</button>
+
+  </div>
+
+  <!-- ══ SCREEN: RECORDS ══ -->
+  <div id="screenRecords" class="screen">
+
+    <div class="records-header">
+      <button class="back-btn" id="backFromRecords">←</button>
+      <span style="font-size:17px; font-weight:700">All Records</span>
+    </div>
+
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="export-row">
+      <button class="btn-secondary" id="exportJsonLd">⬇ JSON-LD</button>
+      <button class="btn-secondary" id="exportCsv">⬇ CSV</button>
+    </div>
+
+    <div id="allRecords" class="all-records"></div>
+
+  </div>
+
+  <!-- NAV -->
+  <div id="nav">
+    <button class="nav-btn active" data-screen="screenHome">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-btn" data-screen="screenRecords">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Records</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- CORRECTION MODAL -->
+<div id="correctionModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">✏️ Correct this record?</div>
+    <div id="modalRecord" class="modal-record"></div>
+    <div>
+      <div class="choice-label" style="margin-bottom:8px">Reason (optional)</div>
+      <textarea id="correctionReason" placeholder="e.g. Wrong category selected"></textarea>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <button class="btn-secondary" id="cancelCorrection">Cancel</button>
+      <button class="btn-primary" id="confirmCorrection">Add Correction</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  REBUILDHUB MVP — CORE LOGIC
+//  Offline-first · IndexedDB · Append-only log
+//  schema.org/Product · JSON-LD export
+// ══════════════════════════════════════════════
+
+const DB_NAME = 'rebuildhub_v1';
+const DB_VER  = 1;
+const STORE   = 'events';
+
+let db = null;
+let session = { siteCode: '', userName: '', gpsConsent: false };
+let pendingDecision = null;
+let selectedCategory = null;
+let selectedCondition = null;
+let correctionTargetId = null;
+let isOnline = navigator.onLine;
+
+// ── ULID-like ID generator ──
+function genId() {
+  const ts = Date.now().toString(36).toUpperCase().padStart(10,'0');
+  const rnd = Math.random().toString(36).substr(2,16).toUpperCase().padStart(16,'0');
+  return 'EVT_' + ts + rnd;
+}
+
+// ── Pseudonymise user ──
+function pseudoUser(name, siteCode) {
+  if (!name) name = 'anon';
+  const str = name.toLowerCase().trim() + siteCode;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return 'usr_' + Math.abs(hash).toString(36);
+}
+
+// ── IndexedDB setup ──
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE)) {
+        const s = d.createObjectStore(STORE, { keyPath: 'event_id' });
+        s.createIndex('site_code', 'site_code', { unique: false });
+        s.createIndex('timestamp_utc', 'timestamp_utc', { unique: false });
+        s.createIndex('event_type', 'event_type', { unique: false });
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror = () => rej(req.error);
+  });
+}
+
+// ── INSERT ONLY — append-only guarantee ──
+function insertEvent(event) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const req = store.add(event); // add() fails if key exists — no overwrite possible
+    req.onsuccess = () => res(event);
+    req.onerror  = () => rej(req.error);
+  });
+}
+
+function getAllEvents() {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const store = tx.objectStore(STORE);
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result || []);
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+function getSiteEvents(siteCode) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const store = tx.objectStore(STORE);
+    const idx = store.index('site_code');
+    const req = idx.getAll(siteCode);
+    req.onsuccess = () => res(req.result || []);
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+// ── Session storage ──
+function saveSession(s) {
+  localStorage.setItem('rbh_session', JSON.stringify(s));
+}
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem('rbh_session')); }
+  catch { return null; }
+}
+
+// ── GPS helper ──
+async function getGPS() {
+  if (!session.gpsConsent) return null;
+  return new Promise(res => {
+    if (!navigator.geolocation) { res(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      p => res({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => res(null),
+      { timeout: 4000 }
+    );
+  });
+}
+
+// ── Create decision event (schema.org/Product aligned) ──
+async function createDecisionEvent(decision, category, condition) {
+  const gps = await getGPS();
+  const now = new Date().toISOString();
+  const event = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    event_id: genId(),
+    schema_version: "1.0.0",
+    event_type: "decision",
+    corrects_event_id: null,
+    tenant_id: "mvp_demo",
+    site_code: session.siteCode,
+    user_pseudonym: pseudoUser(session.userName, session.siteCode),
+    timestamp_utc: now,
+    recorded_offline: !isOnline,
+    synced_at: isOnline ? now : null,
+    decision,
+    material_category: category,
+    condition,
+    gps_consent: session.gpsConsent,
+    geo: gps ? {
+      "@type": "GeoCoordinates",
+      latitude: gps.lat,
+      longitude: gps.lng
+    } : null
+  };
+  await insertEvent(event);
+  return event;
+}
+
+// ── Create correction event ──
+async function createCorrectionEvent(originalId, reason) {
+  const now = new Date().toISOString();
+  const event = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    event_id: genId(),
+    schema_version: "1.0.0",
+    event_type: "correction",
+    corrects_event_id: originalId,
+    tenant_id: "mvp_demo",
+    site_code: session.siteCode,
+    user_pseudonym: pseudoUser(session.userName, session.siteCode),
+    timestamp_utc: now,
+    recorded_offline: !isOnline,
+    synced_at: isOnline ? now : null,
+    correction_reason: reason || null,
+    gps_consent: session.gpsConsent,
+    geo: null
+  };
+  await insertEvent(event);
+  return event;
+}
+
+// ── UI helpers ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.screen === id);
+  });
+  const nav = document.getElementById('nav');
+  nav.style.display = (id === 'screenOnboard') ? 'none' : '';
+}
+
+function showToast(msg, icon = '✓') {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<span>${icon}</span> ${msg}`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function decisionColor(d) {
+  return { retain: 'var(--retain)', transfer: 'var(--transfer)', salvage: 'var(--salvage)', discard: 'var(--discard)' }[d] || '#888';
+}
+function decisionIcon(d) {
+  return { retain: '📌', transfer: '🔄', salvage: '♻️', discard: '🗑️' }[d] || '•';
+}
+
+function formatTime(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+}
+
+// ── Render recent log (home) ──
+async function renderRecent() {
+  const events = await getSiteEvents(session.siteCode);
+  const decisions = events
+    .filter(e => e.event_type === 'decision')
+    .sort((a,b) => new Date(b.timestamp_utc) - new Date(a.timestamp_utc))
+    .slice(0, 5);
+
+  const container = document.getElementById('recentLog');
+  if (!decisions.length) {
+    container.innerHTML = `<div class="empty-state"><span class="empty-icon">📋</span>No decisions yet.<br>Tap a button above to log your first one.</div>`;
+    return;
+  }
+
+  const corrections = new Set(events.filter(e=>e.event_type==='correction').map(e=>e.corrects_event_id));
+
+  container.innerHTML = decisions.map(e => {
+    const isCorrected = corrections.has(e.event_id);
+    const pendingSync = !e.synced_at ? `<span class="sync-badge">⏳ sync</span>` : '';
+    return `
+      <div class="log-item" data-id="${e.event_id}">
+        <div class="log-dot" style="background:${decisionColor(e.decision)}"></div>
+        <div class="log-main">
+          <div class="log-decision" style="color:${decisionColor(e.decision)}">${decisionIcon(e.decision)} ${e.decision}${isCorrected ? ' <span style="font-size:10px;color:var(--muted)">(corrected)</span>' : ''}</div>
+          <div class="log-meta">${e.material_category} · ${e.condition} ${pendingSync}</div>
+        </div>
+        <div class="log-time">${formatTime(e.timestamp_utc)}</div>
+      </div>`;
+  }).join('');
+
+  container.querySelectorAll('.log-item').forEach(el => {
+    el.addEventListener('click', () => openCorrectionModal(el.dataset.id));
+  });
+}
+
+// ── Render all records ──
+async function renderRecords() {
+  const events = await getSiteEvents(session.siteCode);
+  const sorted = [...events].sort((a,b) => new Date(b.timestamp_utc) - new Date(a.timestamp_utc));
+
+  // Stats
+  const decisions = events.filter(e => e.event_type === 'decision');
+  const counts = { retain:0, transfer:0, salvage:0, discard:0 };
+  decisions.forEach(e => { if (counts[e.decision] !== undefined) counts[e.decision]++; });
+
+  document.getElementById('statsRow').innerHTML = ['retain','transfer','salvage','discard'].map(d => `
+    <div class="stat-card">
+      <div class="stat-num" style="color:${decisionColor(d)}">${counts[d]}</div>
+      <div class="stat-label">${d}</div>
+    </div>`).join('');
+
+  const corrections = new Set(events.filter(e=>e.event_type==='correction').map(e=>e.corrects_event_id));
+
+  const container = document.getElementById('allRecords');
+  if (!sorted.length) {
+    container.innerHTML = `<div class="empty-state"><span class="empty-icon">📋</span>No records for this site yet.</div>`;
+    return;
+  }
+
+  container.innerHTML = sorted.map(e => {
+    const isCorr = e.event_type === 'correction';
+    const isCorrected = corrections.has(e.event_id);
+    const offlineTag = e.recorded_offline ? `<span class="offline-tag">offline</span>` : '';
+    const corrTag = isCorr ? `<span class="correction-tag">correction</span>` : '';
+    const correctedTag = isCorrected ? `<span class="correction-tag">corrected</span>` : '';
+    const color = isCorr ? 'var(--muted)' : decisionColor(e.decision);
+    const icon = isCorr ? '✏️' : decisionIcon(e.decision);
+    const label = isCorr ? `Correction → ${e.corrects_event_id ? e.corrects_event_id.slice(0,12)+'…' : '?'}` : e.decision;
+
+    return `<div class="record-card">
+      <div class="record-top">
+        <div class="record-decision" style="color:${color}">${icon} ${label}</div>
+        <div class="record-ts">${formatTime(e.timestamp_utc)}</div>
+      </div>
+      <div class="record-details">
+        ${e.material_category ? `<span class="tag">${e.material_category}</span>` : ''}
+        ${e.condition ? `<span class="tag">${e.condition}</span>` : ''}
+        ${e.correction_reason ? `<span class="tag">📝 ${e.correction_reason}</span>` : ''}
+        ${offlineTag}${corrTag}${correctedTag}
+        ${e.geo ? `<span class="tag">📍 GPS</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Correction modal ──
+async function openCorrectionModal(eventId) {
+  const events = await getSiteEvents(session.siteCode);
+  const ev = events.find(e => e.event_id === eventId);
+  if (!ev || ev.event_type !== 'decision') return;
+
+  correctionTargetId = eventId;
+  document.getElementById('modalRecord').innerHTML = `
+    <strong style="text-transform:capitalize;color:${decisionColor(ev.decision)}">${decisionIcon(ev.decision)} ${ev.decision}</strong>
+    · ${ev.material_category} · ${ev.condition}<br>
+    <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${new Date(ev.timestamp_utc).toLocaleString()}</span>
+  `;
+  document.getElementById('correctionReason').value = '';
+  document.getElementById('correctionModal').classList.add('open');
+}
+
+// ── Connectivity ──
+function updateConnStatus() {
+  isOnline = navigator.onLine;
+  const el = document.getElementById('connStatus');
+  const label = document.getElementById('connLabel');
+  el.className = 'pill ' + (isOnline ? 'online' : 'offline');
+  label.textContent = isOnline ? 'Online' : 'Offline';
+}
+
+// ── Export: JSON-LD ──
+async function exportJsonLd() {
+  const events = await getSiteEvents(session.siteCode);
+  if (!events.length) { showToast('No records to export', '⚠️'); return; }
+  const payload = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: `ReBuildHub — ${session.siteCode}`,
+    description: "Material decision log exported from ReBuildHub MVP",
+    exportedAt: new Date().toISOString(),
+    license: "AGPL-3.0",
+    events
+  };
+  download(`rebuildhub_${session.siteCode}_${Date.now()}.jsonld`, JSON.stringify(payload, null, 2), 'application/ld+json');
+  showToast('JSON-LD exported', '📄');
+}
+
+// ── Export: CSV ──
+async function exportCsv() {
+  const events = await getSiteEvents(session.siteCode);
+  if (!events.length) { showToast('No records to export', '⚠️'); return; }
+  const cols = ['event_id','event_type','site_code','user_pseudonym','timestamp_utc','recorded_offline','decision','material_category','condition','corrects_event_id','correction_reason','gps_consent','geo_lat','geo_lng'];
+  const rows = events.map(e => cols.map(c => {
+    if (c === 'geo_lat') return e.geo ? e.geo.latitude : '';
+    if (c === 'geo_lng') return e.geo ? e.geo.longitude : '';
+    const v = e[c];
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'boolean') return v ? 'true' : 'false';
+    return String(v).replace(/"/g,'""');
+  }).map(v => `"${v}"`).join(','));
+  const csv = [cols.join(','), ...rows].join('\n');
+  download(`rebuildhub_${session.siteCode}_${Date.now()}.csv`, csv, 'text/csv');
+  showToast('CSV exported', '📊');
+}
+
+function download(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ══════════════════════════
+//  INIT & EVENT BINDING
+// ══════════════════════════
+async function init() {
+  await openDB();
+  updateConnStatus();
+  window.addEventListener('online',  updateConnStatus);
+  window.addEventListener('offline', updateConnStatus);
+
+  // GPS toggle
+  let gpsOn = false;
+  document.getElementById('gpsToggle').addEventListener('click', () => {
+    gpsOn = !gpsOn;
+    document.getElementById('toggleSwitch').classList.toggle('on', gpsOn);
+  });
+
+  // Onboarding: start
+  document.getElementById('startBtn').addEventListener('click', async () => {
+    const code = document.getElementById('siteCodeInput').value.trim().toUpperCase();
+    if (!code) {
+      document.getElementById('siteCodeInput').focus();
+      showToast('Please enter a site code', '⚠️');
+      return;
+    }
+    session = { siteCode: code, userName: document.getElementById('userNameInput').value.trim(), gpsConsent: gpsOn };
+    saveSession(session);
+    await enterApp();
+  });
+
+  // Logout
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('rbh_session');
+    session = { siteCode:'', userName:'', gpsConsent:false };
+    showScreen('screenOnboard');
+  });
+
+  // Decision buttons
+  document.querySelectorAll('.decision-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingDecision = btn.dataset.decision;
+      selectedCategory = null;
+      selectedCondition = null;
+      // Reset detail screen
+      document.querySelectorAll('#categoryGrid .choice-btn, #conditionGrid .choice-btn').forEach(b => b.classList.remove('selected'));
+      document.getElementById('saveDecisionBtn').disabled = true;
+      // Set context
+      const icons = { retain:'📌', transfer:'🔄', salvage:'♻️', discard:'🗑️' };
+      document.getElementById('ctxIcon').textContent = icons[pendingDecision];
+      document.getElementById('ctxDecision').textContent = pendingDecision.charAt(0).toUpperCase() + pendingDecision.slice(1);
+      showScreen('screenDetail');
+    });
+  });
+
+  // Back from detail
+  document.getElementById('backBtn').addEventListener('click', () => showScreen('screenHome'));
+
+  // Category selection
+  document.getElementById('categoryGrid').addEventListener('click', e => {
+    const btn = e.target.closest('.choice-btn');
+    if (!btn) return;
+    document.querySelectorAll('#categoryGrid .choice-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedCategory = btn.dataset.value;
+    checkSaveReady();
+  });
+
+  // Condition selection
+  document.getElementById('conditionGrid').addEventListener('click', e => {
+    const btn = e.target.closest('.choice-btn');
+    if (!btn) return;
+    document.querySelectorAll('#conditionGrid .choice-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedCondition = btn.dataset.value;
+    checkSaveReady();
+  });
+
+  // Save decision
+  document.getElementById('saveDecisionBtn').addEventListener('click', async () => {
+    if (!selectedCategory || !selectedCondition || !pendingDecision) return;
+    const btn = document.getElementById('saveDecisionBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      await createDecisionEvent(pendingDecision, selectedCategory, selectedCondition);
+      showToast(`${pendingDecision.charAt(0).toUpperCase()+pendingDecision.slice(1)} logged`, decisionIcon(pendingDecision));
+      showScreen('screenHome');
+      await renderRecent();
+    } catch(err) {
+      showToast('Save failed — try again', '❌');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Decision';
+    }
+  });
+
+  // View all
+  document.getElementById('viewAllBtn').addEventListener('click', async () => {
+    await renderRecords();
+    showScreen('screenRecords');
+  });
+
+  // Back from records
+  document.getElementById('backFromRecords').addEventListener('click', () => showScreen('screenHome'));
+
+  // Nav
+  document.querySelectorAll('.nav-btn[data-screen]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const scr = btn.dataset.screen;
+      if (scr === 'screenRecords') { await renderRecords(); }
+      showScreen(scr);
+    });
+  });
+
+  // Exports
+  document.getElementById('exportJsonLd').addEventListener('click', exportJsonLd);
+  document.getElementById('exportCsv').addEventListener('click', exportCsv);
+
+  // Correction modal
+  document.getElementById('cancelCorrection').addEventListener('click', () => {
+    document.getElementById('correctionModal').classList.remove('open');
+    correctionTargetId = null;
+  });
+
+  document.getElementById('confirmCorrection').addEventListener('click', async () => {
+    if (!correctionTargetId) return;
+    const reason = document.getElementById('correctionReason').value.trim();
+    await createCorrectionEvent(correctionTargetId, reason);
+    document.getElementById('correctionModal').classList.remove('open');
+    correctionTargetId = null;
+    showToast('Correction recorded', '✏️');
+    await renderRecent();
+  });
+
+  // Close modal on overlay click
+  document.getElementById('correctionModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('correctionModal')) {
+      document.getElementById('correctionModal').classList.remove('open');
+    }
+  });
+
+  // Check for existing session
+  const saved = loadSession();
+  if (saved && saved.siteCode) {
+    session = saved;
+    await enterApp();
+  } else {
+    showScreen('screenOnboard');
+  }
+}
+
+function checkSaveReady() {
+  document.getElementById('saveDecisionBtn').disabled = !(selectedCategory && selectedCondition);
+}
+
+async function enterApp() {
+  document.getElementById('bannerSiteCode').textContent = session.siteCode;
+  document.getElementById('bannerUser').textContent = session.userName
+    ? `👤 ${session.userName} · ${session.gpsConsent ? '📍 GPS on' : '📍 GPS off'}`
+    : `Anonymous · ${session.gpsConsent ? '📍 GPS on' : '📍 GPS off'}`;
+  await renderRecent();
+  showScreen('screenHome');
+}
+
+// ── Boot ──
+init().catch(console.error);
+</script>
+</body>
+</html>
